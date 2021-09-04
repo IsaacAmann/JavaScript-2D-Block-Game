@@ -1,0 +1,489 @@
+<html>
+	<head>
+		<style>
+			#container{
+				width: 100%;
+				height: 100%;	
+			}
+			#canvasWrapper{
+				width: 750px;
+				height: 750px;
+				margin:auto;	
+			}
+			#gameCanvas{
+				width: 100%;
+				height: 100%;
+				background-color: black;
+					
+			}
+			body {
+				background-color: green;	
+			}
+			#gameCanvas:hover {
+				cursor:crosshair;	
+			}
+		</style>
+	</head>
+    <body>
+    	<div id="container">
+    		<div id="canvasWrapper">
+    		<canvas id="gameCanvas">
+        	</canvas>
+    	</div>
+    </div>
+    </body>
+<script>
+//start image stuff
+var images = [];
+var imageSrcs = [];
+var imageTotal = 0;
+imageSrcs.push("spritesheet.gif");
+function loadImages(){
+			if(imageSrcs.length == 0){gameArea.start(); console.log("started");}
+			else{
+			for(var i=0;i<imageSrcs.length;i++){
+				var img = new Image();
+				img.src = imageSrcs[i];
+				console.log(img.src);
+				images.push(img);
+				img.onload=function() {
+					console.log("loaded");
+					imageTotal++;
+					if(imageTotal >= imageSrcs.length){
+						gameArea.start();	
+				}	
+			}
+		}
+	}
+}
+//end image stuff
+
+
+//new texture cord function 
+var cursorX = 0;
+var cursorY = 0;
+function getTextureCords(id) {
+	var yMultiplier = 0;
+	var xMultiplier = id % 26;
+	if(id == 1) {
+		return {x:0,y:0};	
+	}else{
+		if(id/25 <= 1){
+			yMultiplier = 0;	
+		}else{
+			var test = id;
+			var recordMulti = 0;
+			while(test > 25){
+				test -= 25;
+				recordMulti ++;
+			}
+			yMultiplier = recordMulti;
+		}
+		newY = 20 * yMultiplier;
+		var x;
+		if(id % 26 == 0){
+			x = 0;
+		}else{
+			x = (20 * xMultiplier)-20;	
+		}
+		return {x:x,y:newY};
+	}
+}
+
+var canvas = document.getElementById("gameCanvas");
+var ctx = canvas.getContext("2d");
+var gridArray = [];
+var stuff = [];
+var enemies = [];
+canvas.width = 750;
+canvas.height = 750;
+var block = function(x,y,width,height,id){
+	this.changeId = function(newId){
+		this.textureCords = getTextureCords(newId);	
+		this.id = newId;
+	}
+	this.x = x;
+	this.y = y;
+	this.width = width;
+	this.height = height;
+	this.id = id;
+	this.textureCords = getTextureCords(id);
+	this.draw = function() {
+		ctx.drawImage(images[0],this.textureCords.x,this.textureCords.y,19,19,this.x,this.y,this.width,this.height);
+	}
+
+	gridArray.push(this);
+}
+function genId(x,y){
+	if(y <= 450){
+		return 1	
+	}else {return 2}
+}
+function getClickedOn(x,y) {
+	for(var i=0;i<gridArray.length;i++){
+		var other = gridArray[i];
+		if (x < other.x + other.width && 
+			x  > other.x &&
+			y < other.y + other.height && 
+			y  > other.y){
+				return gridArray[i]	
+			}
+	}
+}
+function spawnBlockGrid(perRow) {
+
+	var nWidth = canvas.width/perRow;
+	var nHeight = canvas.height/perRow;
+	//width/height != texture width/height, dont use drawing widths in position calculations
+	for(var i=0;i<perRow;i++){
+		for(var g=0;g<perRow;g++){
+			var newBlock = new block(g*nWidth,i*nHeight,nWidth,nHeight,genId(g*nWidth,i*nHeight));
+	
+		}
+	}
+}
+var cursorText = getTextureCords(5);
+//UPDATE FUNCTION
+function update() {
+	gameArea.clear();
+	for(var i=0;i<gridArray.length;i++){
+		gridArray[i].draw();
+			
+	}
+	for(var i=0;i<stuff.length;i++){
+		stuff[i].draw();	
+	}
+	for(var i=0;i<enemies.length;i++){
+		enemies[i].draw();	
+	}
+	//ctx.drawImage(images[0],cursorText.x,cursorText.y,19,19,cursorX-19/2,cursorY-19/2,19,19);
+	mainGUI.draw();	
+	if(gameArea.running){
+	window.requestAnimationFrame(update);
+	
+	}
+}
+var gameArea = {
+	running : false,
+	clear : function() {
+		ctx.clearRect(0,0,canvas.width,canvas.height);	
+	},
+	start : function() {
+		this.running = true;
+		this.keysArray = {
+			up : false,
+			down : false,
+			left : false,
+			right: false,
+			q: false,
+			e: false	
+		}
+		window.requestAnimationFrame(update);		
+		window.addEventListener("keydown", function(e) {
+		if([37,39,38,40,32].indexOf(e.keyCode) > -1) {
+			e.preventDefault()}},false)
+		
+		window.addEventListener("keydown", function(e){
+
+					switch(e.keyCode){
+						case 68:
+							gameArea.keysArray.right = true;
+							break;
+						case 65:
+							gameArea.keysArray.left = true;
+							break;
+						case 87: 
+							gameArea.keysArray.up = true;
+							break;
+						case 83: 
+							gameArea.keysArray.down = true;
+							break;
+						case 81:
+							gameArea.keysArray.q = true;
+							break;
+						case 69:
+							gameArea.keysArray.e = true;
+							break;
+						default:
+							break;
+					}
+				},false);
+				window.addEventListener("keyup",function(e){
+					switch(e.keyCode){
+						case 68:
+							gameArea.keysArray.right = false;
+							break;
+						case 65:
+							gameArea.keysArray.left = false;	
+							break;
+						case 87:
+							gameArea.keysArray.up = false;
+							break;
+						case 83:
+							gameArea.keysArray.down = false;
+							break;
+							case 81:
+							gameArea.keysArray.q = false;
+							break;
+						case 69:
+							gameArea.keysArray.e = false;
+							break;
+						default:
+							break;
+					}
+				},false);		
+	}
+}
+function createPlayer(x,y,width,height,id) {
+	this.maxSpeed = 5;
+	this.grounded = false;
+	this.id = id;
+	this.currentBlock = 3;
+	this.textureCords = getTextureCords(id);
+	this.x = x;
+	this.y = y;
+	this.width = width;
+	this.height = height;
+	this.speedX = 0;
+	this.speedY = 0;
+	this.changeId = function(newId){
+		this.textureCords = getTextureCords(newId);	
+	}
+	this.moveFromControls = function() {
+		
+		if(this.grounded != true){
+		this.speedY += .4;
+		}
+		
+		if(this.speedX > .1){
+			this.speedX -=.2;	
+		}
+		if(this.speedX < -.1){
+			this.speedX += .2;
+		}
+		if(this.speedX >= -.1 && this.speedX <= .1){
+			this.speedX = 0;	
+		}
+		if(this.speedY >= -.2 && this.speedY <= .2){
+			this.speedY = 0;	
+		}
+		if(gameArea.keysArray.right && this.speedX <= Math.abs(this.maxSpeed)){
+			this.speedX += 1;	
+		}
+		if(gameArea.keysArray.left && Math.abs(this.speedX) <= Math.abs(this.maxSpeed)){
+			this.speedX -= 1;	
+		}
+		if(gameArea.keysArray.up && this.grounded){
+			this.speedY -= 7.5;
+			this.grounded = false;	
+		}
+		
+	}
+	this.draw = function() {
+	
+		this.moveFromControls();
+		if(checkCollide(this.x,this.y,this.width,this.height,0,this.speedY,1,this) == true){
+			this.y += this.speedY;
+		}
+		if(checkCollide(this.x,this.y,this.width,this.height,this.speedX,0,2,this) == true){
+			this.x += this.speedX;
+		}
+		
+		ctx.drawImage(images[0],this.textureCords.x,this.textureCords.y,19,19,this.x,this.y,this.width,this.height);	
+	}
+	stuff.push(this);
+}
+
+//version 3, will check if the movement clips into other blocks before making the movement
+checkCollide = function(x,y,width,height,nextX,nextY,type,target){
+	var result = true;
+	for(var i=0;i < gridArray.length;i++){
+		var other = gridArray[i];
+		
+		var newY = y + nextY;
+		var newX = x + nextX;
+		if(newX < other.x + other.width && 
+			newX + width > other.x &&
+			newY < other.y + other.height && 
+			newY + height > other.y ) {
+				if(other.id == 1 && type ==1) {
+					target.grounded = false;	
+				}
+				if(other.id != 1 && type == 1){
+				result = false;
+				//mainPlayer.speedX = 0;
+				target.speedY = 0;
+				//mainPlayer.x += nextX * -.5;
+				target.y += nextY * -.5;
+				target.grounded = true;
+				}
+            
+            //rewrite this later, its hideous
+            //run the collision separate for both y and x axis
+                if(other.id != 1 && type == 2){
+                    target.speedX = 0;
+                    target.x += nextX * -.5;
+                    result = false;
+                }
+			}
+	}
+	return result;
+}
+
+function testChange() {
+	for(var i=0;i>gridArray.length;i++){
+		gridArray[i].id = 2; 	
+	}
+}
+function getMouseCords(canvas, mouseEvent) {
+	var bound = canvas.getBoundingClientRect();
+	var x = mouseEvent.clientX - bound.left - canvas.clientLeft;
+	var y = mouseEvent.clientY - bound.top - canvas.clientTop;
+
+	cursorX = x;
+	cursorY = y;
+		return{
+		x:x,
+		y:y	
+	}
+}
+
+window.onmousemove = function(e) {
+	getMouseCords(canvas, e);
+}
+window.onmousedown = function() {
+	var target = getClickedOn(cursorX,cursorY);
+	console.log(target);
+	inventory[target.id] += 1;
+	target.changeId(1);
+	
+}
+window.oncontextmenu = function() {
+	
+	var target = getClickedOn(cursorX,cursorY);
+	console.log(target);
+	target.changeId(mainPlayer.currentBlock);
+	inventory[mainPlayer.currentBlock] -= 1;
+	return false
+	
+}
+
+function drawGUI(x,y,width,height,segments){
+	this.currentBlock = 1;
+	this.currentCords;
+	this.x = x;
+	this.y = y;
+	this.selectX = this.x;
+	this.selectY = this.y;
+	this.changeBufferE = 0;
+	this.changeBufferQ = 0;
+	this.width = width;
+	this.height = height;
+	this.segments = segments;
+	this.selectHeight = this.height;
+	this.selectWidth = this.width / segments;
+	this.draw = function() {
+		if(gameArea.keysArray.q && this.currentBlock != 1){
+			this.changeBufferQ ++;
+			if(this.changeBufferQ == 6){
+				this.currentBlock --;
+				this.changeBufferQ = 0;
+			}
+		}
+		if(gameArea.keysArray.e && (this.currentBlock != this.segments)){
+			this.changeBufferE ++;
+			if(this.changeBufferE == 6){
+				this.currentBlock ++;	
+				this.changeBufferE = 0;
+			}
+		}
+		this.selectX = this.x + (this.selectWidth*(this.currentBlock-1));
+		ctx.fillStyle = "white";
+		ctx.fillRect(this.x,this.y,this.width,this.height);	
+		ctx.fillStyle = "red";
+		ctx.fillRect(this.selectX,this.selectY,this.selectWidth,this.selectHeight);
+		this.manageInventory();
+		for(var i=0;i<this.segments;i++){
+			var cords = getTextureCords(i+1);
+			ctx.drawImage(images[0],cords.x,cords.y,19,19,this.x+4 + ((this.selectWidth)*i),this.y+4,16,16);
+			mainPlayer.currentBlock = this.currentBlock;
+		}
+	}
+	this.manageInventory = function(){
+		
+	}
+}
+var inventory = [0,0,0,0,0,0,0,0,0,0,0,0,0,
+			     0,0,0,0,0,0,0,0,0,0,0,0,0];
+function logSelector(){
+	console.log({x:mainGUI.selectX,y:mainGUI.selectY,width:mainGUI.selectWidth,height:mainGUI.selectHeight})	
+}
+function enemy(x,y,width,height,id){
+	this.speedX = 0;
+	this.speedY = 0;
+	this.x = x;
+	this.y =y;
+	this.width = width;
+	this.height = height;
+	this.id = id;
+	this.textureCords = getTextureCords(id);
+	this.rightMovement = 0;
+	this.leftMovement = 0;
+	this.changeID = function(newID){
+		this.id = newID;
+		this.textureCords = getTextureCords(id);
+	}
+	this.walkAround = function() {
+		this.speedY += .4;
+		if(this.rightMovement == 0 && this.leftMovement == 0){
+			this.speedX = 0;
+			this.speedY = 0;
+			var firstNumber = Math.floor(Math.random() * 4);
+			switch(firstNumber) {
+				case 0:
+					var addRight = Math.floor(Math.random() * 33);
+					this.rightMovement += addRight;
+					break;
+				case 1:
+					var addLeft = Math.floor(Math.random() * 33);
+					this.leftMovement += addLeft;
+					break;
+				case 2:
+					break;
+				case 3:
+					break;
+				default:
+					break;	
+				
+			}
+		}
+		if(this.rightMovement > 0){
+			this.speedX += .2;
+			this.rightMovement --;	
+		}
+		if(this.leftMovement > 0){
+			this.speedX -= .2;
+			this.leftMovement --;	
+		}
+		if(this.grounded == true && (Math.floor(Math.random() * 100)) == 2){
+			this.speedY -= 10;
+		}
+	}
+	this.draw = function() {
+		this.walkAround();
+		if(checkCollide(this.x,this.y,this.width,this.height,0,this.speedY,1,this) == true){
+			this.y += this.speedY;
+		}
+		if(checkCollide(this.x,this.y,this.width,this.height,this.speedX,0,2,this) == true){
+			this.x += this.speedX;
+		}
+		ctx.drawImage(images[0],this.textureCords.x,this.textureCords.y,19,19,this.x,this.y,this.width,this.height);
+	}
+	enemies.push(this);
+}
+loadImages();
+spawnBlockGrid(22);
+var mainPlayer = new createPlayer(200,300,19,19,4); //function at line 228
+var mainGUI = new drawGUI(canvas.width / 2 - (400/2), canvas.height - 50, 400,25,12);
+var test = new enemy(222,200,19,19,4);
+</script>
